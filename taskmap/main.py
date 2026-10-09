@@ -52,8 +52,13 @@ def point_attributes(ref_state: dict) -> dict:
     return {'lat': lat, 'lon': lon, 'ref.yaw': rotation[2], **redis_server.get_all_values()}
 
 
+# Published when no session is recording. Not '': the Redis client of artof-core (redis-cpp) leaves the CRLF of an
+# empty bulk string in its stream, so every artof-core process that reads the key fails on the next reply.
+NO_SESSION = '-'
+
+
 def publish_session(recorder):
-    redis_server.set_value(as_applied.REDIS_SESSION, recorder.session if recorder and recorder.layers else '')
+    redis_server.set_value(as_applied.REDIS_SESSION, recorder.session if recorder and recorder.layers else NO_SESSION)
 
 
 def close(recorder):
