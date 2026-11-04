@@ -20,7 +20,8 @@ from artof_utils.schemas.settings import load_settings
 
 POLL_PERIOD = float(getenv('TASKMAP_POLL_PERIOD', '0.2'))     # seconds between redis reads
 FLUSH_PERIOD = float(getenv('TASKMAP_FLUSH_PERIOD', '1.0'))   # seconds between writes to the GeoPackages
-MIN_DISTANCE = float(getenv('TASKMAP_MIN_DISTANCE', '0.1'))   # meters moved before a section or point is recorded
+MIN_DISTANCE = float(getenv('TASKMAP_MIN_DISTANCE', '0.1'))   # meters moved before a section or sample is recorded
+POINT_DISTANCE = float(getenv('TASKMAP_POINT_DISTANCE', '1.0'))  # meters between points along the driven path
 POINT_PERIOD = float(getenv('TASKMAP_POINT_PERIOD', '5.0'))   # seconds between points while standing still
 
 running = True
@@ -46,10 +47,10 @@ def field_crs(field_name: str):
 
 
 def point_attributes(ref_state: dict) -> dict:
-    """All redis variables (as on the monitor page) plus the WGS84 position and heading of the reference point."""
-    lat, lon = (ref_state.get('point', {}).get('latlng') or [None, None])[:2]
+    """All redis variables (as on the monitor page) plus the heading of the reference point. The recorder adds the
+    WGS84 position, since points are interpolated between polls to keep them equidistant."""
     rotation = ref_state.get('R') or [None, None, None]
-    return {'lat': lat, 'lon': lon, 'ref.yaw': rotation[2], **redis_server.get_all_values()}
+    return {'ref.yaw': rotation[2], **redis_server.get_all_values()}
 
 
 # Published when no session is recording. Not '': the Redis client of artof-core (redis-cpp) leaves the CRLF of an
@@ -98,7 +99,8 @@ def main():
 
         if recording and field_name:
             if recorder is None:
-                recorder = as_applied.AsAppliedRecorder(field_name, field_crs(field_name), MIN_DISTANCE, POINT_PERIOD)
+                recorder = as_applied.AsAppliedRecorder(field_name, field_crs(field_name), MIN_DISTANCE, POINT_PERIOD,
+                                                         point_distance=POINT_DISTANCE)
                 print('Recording as-applied session %s of field %s' % (recorder.session, field_name))
 
             data = redis_server.get_n_json_value(['implement.states', 'robot.ref.state'])

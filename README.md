@@ -11,8 +11,9 @@ leaves it; outside auto mode it can be toggled from the map tab of artof-system.
     points.gpkg     layer "points": robot.ref.state point with all Redis variables (+ time, lat, lon, ref.yaw)
 ```
 
-Sections and points are written once they moved more than `TASKMAP_MIN_DISTANCE`; points are also logged every
-`TASKMAP_POINT_PERIOD` seconds while the robot stands still. A new session starts each time recording is switched on
+Sections are written once they moved more than `TASKMAP_MIN_DISTANCE`. Points are equidistant: one every
+`TASKMAP_POINT_DISTANCE` meters along the driven path, interpolated between polls so the spacing does not depend on the
+speed or the poll rate; they are also logged every `TASKMAP_POINT_PERIOD` seconds while the robot stands still. A new session starts each time recording is switched on
 or the active field (`pc.field.name`) changes. The running session id is published in `pc.as_applied.session`, and
 `pc.as_applied.heartbeat` (unix time, every second) tells the web pages the addon is alive. The format and geometry
 live in `artof_utils.as_applied`; this addon is only the long-running process around it.
@@ -29,4 +30,4 @@ docker run --rm --network=host -v /var/lib/ilvo:/var/lib/ilvo --name taskmap-add
 ```
 
 Settings (environment): `TASKMAP_POLL_PERIOD` (s, default 0.2), `TASKMAP_FLUSH_PERIOD` (s, default 1.0),
-`TASKMAP_MIN_DISTANCE` (m, default 0.1), `TASKMAP_POINT_PERIOD` (s, default 5.0), `REDIS_HOST` / `REDIS_PORT`.
+`TASKMAP_MIN_DISTANCE` (m, default 0.1), `TASKMAP_POINT_DISTANCE` (m, default 1.0), `TASKMAP_POINT_PERIOD` (s, default 5.0), `REDIS_HOST` / `REDIS_PORT`.
