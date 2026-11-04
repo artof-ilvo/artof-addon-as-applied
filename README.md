@@ -24,9 +24,9 @@ Both GeoPackages open directly in QGIS (drag and drop); the artof-system **Appli
 
 ```bash
 # with a local artof-utils checkout (needed until as_applied is released on PyPI)
-docker build --build-context artof_utils=../../artof-utils -t axelwillekens/artof-taskmap-addon:dev .
+docker build --build-context artof_utils=../../artof-utils -t axelwillekens/artof-addon-as-applied:dev .
 
-docker run --rm --network=host -v /var/lib/ilvo:/var/lib/ilvo --name taskmap-addon axelwillekens/artof-taskmap-addon:dev
+docker run --rm --network=host -v /var/lib/ilvo:/var/lib/ilvo --name artof-addon-as-applied axelwillekens/artof-addon-as-applied:dev
 ```
 
 Settings (environment): `TASKMAP_POLL_PERIOD` (s, default 0.2), `TASKMAP_FLUSH_PERIOD` (s, default 1.0),
