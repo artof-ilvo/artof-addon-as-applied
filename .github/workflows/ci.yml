@@ -41,12 +41,12 @@ jobs:
           context: .
           build-contexts: artof_utils=.artof-utils
           load: true
-          tags: taskmap-addon:ci
+          tags: artof-addon-as-applied:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Check the addon and artof_utils are installed
-        run: docker run --rm taskmap-addon:ci python -c "import taskmap, artof_utils.as_applied"
+        run: docker run --rm artof-addon-as-applied:ci python -c "import taskmap, artof_utils.as_applied"
 
   stage-docker:
     name: "Stage Docker image (tag: dev)"
