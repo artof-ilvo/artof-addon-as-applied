@@ -1,0 +1,127 @@
+name: Publish Docker image
+
+# Pull requests       -> build the image only
+# Push to main        -> staging (approval): push ":dev"
+#                     -> production (approval, after staging): push ":<DOCKER_IMAGE_TAG>" and ":latest"
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+env:
+  IMAGE: ${{ vars.DOCKER_HUB_REGISTRY }}/${{ vars.DOCKER_IMAGE_NAME }}
+  # artof_utils is a named build context (see Dockerfile), taken from this branch of artof-utils
+  ARTOF_UTILS_REF: main
+
+jobs:
+
+  build:
+    name: "Build Docker image"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Check out artof-utils
+        uses: actions/checkout@v4
+        with:
+          repository: artof-ilvo/artof-utils
+          ref: ${{ env.ARTOF_UTILS_REF }}
+          path: .artof-utils
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          build-contexts: artof_utils=.artof-utils
+          load: true
+          tags: taskmap-addon:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Check the addon and artof_utils are installed
+        run: docker run --rm taskmap-addon:ci python -c "import taskmap, artof_utils.as_applied"
+
+  stage-docker:
+    name: "Stage Docker image (tag: dev)"
+    needs:
+      - build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Check out artof-utils
+        uses: actions/checkout@v4
+        with:
+          repository: artof-ilvo/artof-utils
+          ref: ${{ env.ARTOF_UTILS_REF }}
+          path: .artof-utils
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
+      - name: Build and push dev
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          build-contexts: artof_utils=.artof-utils
+          push: true
+          tags: ${{ env.IMAGE }}:dev
+          cache-from: type=gha
+
+  deploy-docker:
+    name: "Deploy Docker image (tags: version and latest)"
+    needs:
+      - stage-docker
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Check out artof-utils
+        uses: actions/checkout@v4
+        with:
+          repository: artof-ilvo/artof-utils
+          ref: ${{ env.ARTOF_UTILS_REF }}
+          path: .artof-utils
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
+      - name: Build and push version and latest
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          build-contexts: artof_utils=.artof-utils
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ vars.DOCKER_IMAGE_TAG }}
+            ${{ env.IMAGE }}:latest
+          cache-from: type=gha
