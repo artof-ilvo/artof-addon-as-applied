@@ -8,7 +8,7 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 # artof_utils is installed from the named build context "artof_utils" (a local checkout):
-#   docker build --build-context artof_utils=../../artof-utils -t axelwillekens/artof-taskmap-addon:dev .
+#   docker build --build-context artof_utils=../../artof-utils -t axelwillekens/artof-addon-as-applied:dev .
 COPY --from=artof_utils . /tmp/artof_utils
 RUN pip install --no-cache-dir /tmp/artof_utils && rm -rf /tmp/artof_utils
 
